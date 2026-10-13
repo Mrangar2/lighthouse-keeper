@@ -1,0 +1,116 @@
+<!doctype html>
+<!--
+  Farero - Proyecto Personal GPC (MIARFID, UPV)
+  Videojuego 3D con Three.js r140
+-->
+<html lang="es">
+	<head>
+		<meta charset='utf-8'>
+		<title>Farero</title>
+		<link rel="icon" href="data:,">
+		<style>
+			body {
+				background-color: #05080c;
+				margin: 0px;
+				overflow: hidden;
+				font-family: sans-serif;
+				color: #f1ead8;
+			}
+			#marcadores { display: none; }
+			#panel, #energia {
+				position: absolute; top: 12px; padding: 8px 12px;
+				background: rgba(0, 0, 0, 0.5); border-radius: 4px; line-height: 1.5;
+			}
+			#panel { left: 12px; }
+			#energia { left: 50%; transform: translateX(-50%); width: 200px; text-align: center; }
+			#barra { height: 10px; background: #333; margin-top: 4px; }
+			#energia-barra { height: 100%; width: 100%; background: #f2d27a; }
+			#controles {
+				position: absolute; bottom: 10px; left: 12px; padding: 6px 10px; font-size: 14px;
+				background: rgba(0, 0, 0, 0.5); border-radius: 4px;
+			}
+			#controles summary { cursor: pointer; color: #f2d27a; }
+			#controles p { margin: 4px 0; }
+			#mira {
+				position: absolute; left: 50%; top: 50%; width: 6px; height: 6px;
+				margin: -3px 0 0 -3px; border-radius: 50%; background: #fff8e0; pointer-events: none;
+			}
+			#catalejo {
+				position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; pointer-events: none;
+				background: radial-gradient(circle, transparent 34%, #000 37%);
+			}
+			#mensaje, #aviso {
+				position: absolute; width: 100%; text-align: center; font-size: 20px;
+				text-shadow: 0 1px 3px #000; pointer-events: none;
+			}
+			#mensaje { top: 22%; opacity: 0; transition: opacity 0.5s; }
+			#aviso { bottom: 14%; color: #f2d27a; }
+			.pantalla {
+				position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+				display: none; flex-direction: column; align-items: center; justify-content: center;
+				text-align: center; background: rgba(0, 0, 0, 0.55);
+			}
+			.pantalla h2 { font-family: Georgia, serif; color: #f2d27a; }
+			.pantalla p { max-width: 600px; line-height: 1.6; }
+			table { margin: 6px 0; text-align: left; }
+			td { padding: 2px 10px; }
+			button {
+				margin-top: 18px; padding: 10px 30px; font-size: 18px; cursor: pointer;
+				background: #f2d27a; border: none; border-radius: 4px;
+			}
+		</style>
+	</head>
+	<body>
+		<!-- Contenedor del app -->
+		<div id="container"></div>
+		<div id="catalejo"></div>
+
+		<!-- Marcadores de la partida -->
+		<div id="marcadores">
+			<div id="panel">
+				Puntos: <b id="puntos">0</b><br>
+				Noche <span id="noche">1</span> · Guiados: <span id="guiados">0</span><br>
+				Barcos que puedes perder: <span id="naufragios"></span>
+			</div>
+			<div id="energia">Energía de la lámpara<div id="barra"><div id="energia-barra"></div></div></div>
+			<details id="controles">
+				<summary>Controles (H)</summary>
+				<table>
+					<tr><td>Ratón / flechas</td><td>Mirar (el haz apunta a donde miras)</td></tr>
+					<tr><td>Clic izquierdo</td><td>Capturar el ratón</td></tr>
+					<tr><td>W A S D</td><td>Caminar por la galería (Mayús para correr)</td></tr>
+					<tr><td>Clic derecho</td><td>Catalejo</td></tr>
+					<tr><td>Rueda</td><td>Estrechar o abrir el haz</td></tr>
+					<tr><td>E</td><td>Dar cuerda a la lámpara junto a la manivela</td></tr>
+					<tr><td>Esc / P</td><td>Pausa</td></tr>
+				</table>
+				<p>Farol del barco: amarillo = te ve · naranja = dudando · rojo parpadeante = perdido</p>
+			</details>
+			<div id="mira"></div>
+		</div>
+		<div id="mensaje"></div>
+		<div id="aviso"></div>
+
+		<!-- Pantallas -->
+		<div id="pantalla-pausa" class="pantalla"><h2>Pausa</h2><p>Haz clic (o pulsa P) para continuar</p></div>
+
+		<div id="pantalla-fin" class="pantalla">
+			<h2>El mar se ha cobrado tres barcos</h2>
+			<p>Puntos: <b id="fin-puntos">0</b> · Barcos guiados: <b id="fin-guiados">0</b> · Noche: <b id="fin-noche">1</b><br>
+			Récord: <b id="fin-record">0</b></p>
+			<button id="boton-otra">Otra noche</button>
+		</div>
+
+		<!-- Scripts de biblioteca -->
+		<script src="lib/three.min_r140.js"></script>
+		<script src="lib/GLTFLoader.js"></script>
+		<script src="lib/lil-gui_0.16.1.js"></script>
+		<script>var module = {}; // para que tween_18.js no dé error</script>
+		<script src="lib/tween_18.js"></script>
+
+		<!-- Juego -->
+		<script src="js/escena.js"></script>
+		<script src="js/barcos.js"></script>
+		<script src="js/juego.js"></script>
+	</body>
+</html>
