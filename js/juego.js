@@ -31,6 +31,7 @@ const CORRIENTE = 1.2;                           // empuja a los barcos perdidos
 var renderer, scene, camera;
 var clock = new THREE.Clock();
 var raycaster = new THREE.Raycaster();
+var stats = new Stats();
 
 // Estado de la partida
 var estado = 'jugando';      // jugando, pausa o fin
@@ -68,6 +69,14 @@ function init()
 
   camera = new THREE.PerspectiveCamera(FOV_NORMAL, window.innerWidth / window.innerHeight, 0.1, 2000);
   camera.rotation.order = 'YXZ';
+
+  // Contador de FPS (clic para cambiar de panel), abajo a la derecha
+  stats.showPanel(0);
+  stats.domElement.style.top = 'auto';
+  stats.domElement.style.left = 'auto';
+  stats.domElement.style.bottom = '0px';
+  stats.domElement.style.right = '0px';
+  document.getElementById('container').appendChild(stats.domElement);
 
   window.addEventListener('resize', updateAspectRatio);
   document.addEventListener('keydown', teclaPulsada);
@@ -381,6 +390,7 @@ function actualizarBarcos(dt)
 function update()
 {
   const dt = Math.min(clock.getDelta(), 0.05);
+  stats.update();
   if (estado === 'pausa') return;
 
   texMar.offset.x += dt * 0.01;
