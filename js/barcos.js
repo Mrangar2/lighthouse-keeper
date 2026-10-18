@@ -2,14 +2,14 @@
 // Los barcos cruzan por canales entre las rocas. Si se quedan sin luz
 // se pierden y la corriente los lleva contra las rocas
 
-const R_APARICION = 215;      // aquí aparecen y desaparecen
-const R_PELIGRO = 138;        // aquí dentro necesitan la luz
+const R_APARICION = 180;      // aquí aparecen y desaparecen
+const R_PELIGRO = 130;        // aquí dentro necesitan la luz
 
-// Datos de cada tipo de barco
+// Datos de cada tipo de barco (vel en m/s, giro en rad/s, farol = altura de la bola)
 const TIPOS = {
-  pesquero: { nombre: 'El pesquero', escala: 1.6, vel: 5.0, giro: 0.8, largo: 6,   puntos: 100, farol: 4.8 },
-  velero:   { nombre: 'El velero',   escala: 1.7, vel: 6.5, giro: 0.9, largo: 6.5, puntos: 150, farol: 7.1 },
-  carguero: { nombre: 'El carguero', escala: 1.3, vel: 3.8, giro: 0.5, largo: 13,  puntos: 250, farol: 5.0 }
+  pesquero: { nombre: 'El pesquero', escala: 1.6, vel: 6.0, giro: 0.8, largo: 6,   puntos: 100, farol: 4.8 },
+  velero:   { nombre: 'El velero',   escala: 1.7, vel: 7.5, giro: 0.9, largo: 6.5, puntos: 150, farol: 7.1 },
+  carguero: { nombre: 'El carguero', escala: 1.3, vel: 4.5, giro: 0.5, largo: 13,  puntos: 250, farol: 5.0 }
 };
 
 var modelosBarco = {};
@@ -86,7 +86,7 @@ function crearBarco(noche)
   const b = {
     t: t, grupo: grupo, farol: farol,
     ax: ru.ax, az: ru.az, bx: ru.bx, bz: ru.bz,
-    vel: t.vel * (1 + 0.06 * (noche - 1)),
+    vel: t.vel * (1 + MAS_VELOCIDAD_POR_NOCHE * (noche - 1)),
     visibilidad: 1,         // 1 si ve la luz, 0 si está perdido
     deriva: 0,
     estado: 'navegando',
@@ -147,7 +147,7 @@ function actualizarBarco(b, dt, t, noche)
   if (enZona) b.entroEnZona = true;
 
   // Si no le da la luz se le va olvidando
-  const memoria = Math.max(3, MEMORIA_LUZ - 0.3 * (noche - 1));
+  const memoria = Math.max(MEMORIA_MIN, MEMORIA_LUZ - 0.3 * (noche - 1));
   if (hazIlumina(b.x, b.z) || !enZona || siempreGuiados) b.visibilidad = 1;
   else b.visibilidad = Math.max(0, b.visibilidad - dt / memoria);
 

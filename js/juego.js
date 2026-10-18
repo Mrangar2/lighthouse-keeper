@@ -1,18 +1,31 @@
 // Farero - Proyecto Personal GPC (MIARFID)
 // Bucle principal, controles y partida
 
-// Parámetros del juego
+// ---------- Ajustes del juego (para cambiar algo, tocar aquí) ----------
+
+// Jugador
 const ALTURA_OJOS = 1.65;
 const R_ANDAR_MIN = 2.85, R_ANDAR_MAX = 4.25;   // por donde puede andar
-const PITCH_MIN = -1.35, PITCH_MAX = 0.9;
+const PITCH_MIN = -1.35, PITCH_MAX = 0.9;        // cuánto puede mirar abajo y arriba
 const VEL_ANDAR = 3.0, VEL_CORRER = 5.2;
-const VEL_GIRO_HAZ = 2.4;                        // el haz va un poco por detrás de la vista
-const ENERGIA_MAX = 100, CONSUMO = 2.2, RECARGA = 18;
-const MEMORIA_LUZ = 5.5;                         // segundos que un barco se acuerda de la luz
-const CORRIENTE = 1.2;
-const NAUFRAGIOS_MAX = 3;
-const DURACION_NOCHE = 75;
+const SENSIBILIDAD_RATON = 0.0022;
 const FOV_NORMAL = 70, FOV_CATALEJO = 24;
+
+// Lámpara
+const VEL_GIRO_HAZ = 2.4;                        // el haz va un poco por detrás de la vista
+const HAZ_MIN = 0.07, HAZ_MAX = 0.22;            // apertura con la rueda
+const ENERGIA_MAX = 100, CONSUMO = 2.2, RECARGA = 18;
+
+// Partida y dificultad
+const NAUFRAGIOS_MAX = 3;                        // barcos que se pueden perder
+const DURACION_NOCHE = 50;                       // segundos por noche
+const BARCOS_A_LA_VEZ = 2;                       // en la noche 1, uno más cada noche
+const ESPERA_BARCOS = 10;                        // segundos entre barcos en la noche 1
+const ESPERA_MIN = 4;
+const MENOS_ESPERA_POR_NOCHE = 1.5;
+const MAS_VELOCIDAD_POR_NOCHE = 0.08;            // +8 % cada noche
+const MEMORIA_LUZ = 5.5, MEMORIA_MIN = 3;        // segundos que un barco se acuerda de la luz
+const CORRIENTE = 1.2;                           // empuja a los barcos perdidos hacia la isla
 
 // Variables globales que van siempre
 var renderer, scene, camera;
@@ -29,10 +42,10 @@ var destinoHaz = { yaw: 0, pitch: -0.2 };
 var energia = ENERGIA_MAX, lamparaEncendida = true;
 var puntos = 0, guiados = 0, naufragios = 0, noche = 1, tiempo = 0, tAparicion = 0, tFin = -1;
 var record = 0;
-var catalejo = false, arrastrando = false, sinCaptura = false;
+var catalejo = false, arrastrando = false;
 var siempreGuiados = false;  // opción del gui para probar
 var teclas = {};
-var momentoPausa = 0, tMensaje = null;
+var tMensaje = null;
 
 // 1-inicializa
 init();
@@ -64,7 +77,7 @@ function init()
   renderer.domElement.addEventListener('mousedown', function (e) {
     if (e.button === 0) {
       arrastrando = true;
-      if (estado === 'jugando' && !ratonCapturado() && !sinCaptura) capturarRaton();
+      if (estado === 'jugando' && !ratonCapturado()) capturarRaton();
     }
     if (e.button === 2 && estado === 'jugando') catalejo = true;
   });
@@ -75,23 +88,23 @@ function init()
   document.addEventListener('contextmenu', function (e) { e.preventDefault(); });
   document.addEventListener('mousemove', function (e) {
     if (estado !== 'jugando' || !(ratonCapturado() || arrastrando)) return;
-    const s = 0.0022 * camera.fov / FOV_NORMAL;
+    const s = SENSIBILIDAD_RATON * camera.fov / FOV_NORMAL;
     girarVista(-e.movementX * s, -e.movementY * s);
   });
   document.addEventListener('wheel', function (e) {
-    if (estado === 'jugando') hazAngulo = clamp(hazAngulo - Math.sign(e.deltaY) * 0.012, 0.07, 0.22);
+    if (estado === 'jugando') hazAngulo = clamp(hazAngulo - Math.sign(e.deltaY) * 0.012, HAZ_MIN, HAZ_MAX);
   });
+  // Al soltar el ratón (Esc) se pausa
   document.addEventListener('pointerlockchange', function () {
     if (estado === 'jugando' && !ratonCapturado()) pausar();
   });
   document.addEventListener('pointerlockerror', function () {
-    sinCaptura = true;
-    mensaje('Tu navegador no deja capturar el ratón: arrastra con clic izquierdo o usa las flechas');
+    mensaje('No se ha podido capturar el ratón: vuelve a hacer clic o arrastra con el clic izquierdo');
   });
 
   document.getElementById('boton-otra').addEventListener('click', function () {
     empezar();
-    if (!sinCaptura) capturarRaton();
+    capturarRaton();
   });
   document.getElementById('pantalla-pausa').addEventListener('click', reanudar);
 }
@@ -140,12 +153,12 @@ function capturarRaton()
 function teclaPulsada(e)
 {
   teclas[e.code] = true;
-  // Esc también pausa, menos el que se pulsa para soltar el ratón
-  const escLibre = e.code === 'Escape' && !ratonCapturado() && performance.now() - momentoPausa > 500;
-  if (e.code === 'KeyP' || escLibre) {
+  // P pausa y reanuda, Esc solo pausa
+  if (e.code === 'KeyP') {
     if (estado === 'jugando') pausar();
     else if (estado === 'pausa') reanudar();
   }
+  if (e.code === 'Escape' && estado === 'jugando') pausar();
   // H abre o cierra el desplegable de controles
   if (e.code === 'KeyH') {
     const controles = document.getElementById('controles');
@@ -264,7 +277,7 @@ function actualizarHaz(dt, gastar)
 
   // Cuanto más estrecho, más fuerte
   foco.angle = hazAngulo;
-  foco.intensity = lamparaEncendida ? 10 * HAZ_ANGULO / hazAngulo : 0;
+  foco.intensity = lamparaEncendida ? INTENSIDAD_HAZ * HAZ_ANGULO / hazAngulo : 0;
   foco.target.position.copy(posLampara).addScaledVector(hazDir, 100);
   conoHaz.visible = lamparaEncendida;
   // El cono acaba donde el haz toca el mar
@@ -290,7 +303,7 @@ function empezar()
   energia = ENERGIA_MAX;
   lamparaEncendida = true;
   hazAngulo = HAZ_ANGULO;
-  puntos = 0; guiados = 0; naufragios = 0; noche = 1; tiempo = 0; tAparicion = 2; tFin = -1;
+  puntos = 0; guiados = 0; naufragios = 0; noche = 1; tiempo = 0; tAparicion = 1; tFin = -1;
   estado = 'jugando';
   mostrarPantalla(null);
   mensaje('Haz clic para mirar con el ratón: el haz de luz sigue tu mirada');
@@ -300,7 +313,6 @@ function empezar()
 function pausar()
 {
   estado = 'pausa';
-  momentoPausa = performance.now();
   catalejo = false;
   teclas = {};
   mostrarPantalla('pausa');
@@ -311,7 +323,7 @@ function reanudar()
 {
   estado = 'jugando';
   mostrarPantalla(null);
-  if (!sinCaptura) capturarRaton();
+  capturarRaton();
   clock.getDelta();
 }
 
@@ -339,9 +351,11 @@ function actualizarBarcos(dt)
   for (let i = 0; i < barcos.length; i++) {
     if (barcos[i].estado == 'navegando') enMar++;
   }
-  if (estado === 'jugando' && modelosListos && tAparicion <= 0 && enMar < 2 + noche) {
+  const maxBarcos = BARCOS_A_LA_VEZ + (noche - 1);
+  if (estado === 'jugando' && modelosListos && tAparicion <= 0 && enMar < maxBarcos) {
     crearBarco(noche);
-    tAparicion = Math.max(5, 15 - 1.5 * (noche - 1)) * (0.75 + Math.random() * 0.5);
+    const espera = Math.max(ESPERA_MIN, ESPERA_BARCOS - MENOS_ESPERA_POR_NOCHE * (noche - 1));
+    tAparicion = espera * (0.75 + Math.random() * 0.5);   // un poco al azar
   }
 
   // Se recorre al revés porque se pueden borrar barcos

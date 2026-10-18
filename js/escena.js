@@ -7,7 +7,12 @@ const ALTO_MURO = 1.95;       // tapa la vista al jugador
 const R_BARANDILLA = 4.6;
 const R_ISLA = 15;
 const R_ROCA = 2.3;           // tamaño de una roca para los choques
-const HAZ_ANGULO = 0.12;      // apertura del haz al empezar
+const NUM_ROCAS = 55;         // rocas sueltas en el mar
+
+// Haz de luz
+const HAZ_ANGULO = 0.12;      // apertura del haz al empezar (radianes)
+const COLOR_HAZ = 0xfff0c8;
+const INTENSIDAD_HAZ = 10;
 
 var mar, texMar;
 var lampara, lente, frenteLente;   // la lámpara gira y la lente sube y baja
@@ -247,7 +252,7 @@ function crearManivela(faro, mat)
 function crearHaz()
 {
   // Luz focal del haz, con sombras
-  foco = new THREE.SpotLight(0xfff0c8, 10, 360, HAZ_ANGULO, 0.35, 0.5);
+  foco = new THREE.SpotLight(COLOR_HAZ, INTENSIDAD_HAZ, 360, HAZ_ANGULO, 0.35, 0.5);
   foco.position.copy(posLampara);
   foco.castShadow = true;
   foco.shadow.mapSize.set(1024, 1024);
@@ -262,7 +267,7 @@ function crearHaz()
   geo.translate(0, -112.5, 0);
   geo.rotateX(-Math.PI / 2);
   conoHaz = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({
-    color: 0xfff0c8, transparent: true, opacity: 0.06, side: THREE.DoubleSide, depthWrite: false
+    color: COLOR_HAZ, transparent: true, opacity: 0.06, side: THREE.DoubleSide, depthWrite: false
   }));
   conoHaz.position.copy(posLampara);
   scene.add(conoHaz);
@@ -315,11 +320,11 @@ function crearRocas()
     ponerRoca(modelosRoca[i % 3], Math.cos(a) * (R_ISLA + 1), Math.sin(a) * (R_ISLA + 1), 1.2 + Math.random() * 0.6);
   }
 
-  // 55 rocas sueltas puestas al azar
+  // Rocas sueltas puestas al azar entre 30 m y R_PELIGRO - 10
   let colocadas = 0;
-  for (let intentos = 0; intentos < 5000 && colocadas < 55; intentos++) {
+  for (let intentos = 0; intentos < 5000 && colocadas < NUM_ROCAS; intentos++) {
     const a = Math.random() * Math.PI * 2;
-    const d = 30 + Math.random() * 90;
+    const d = 30 + Math.random() * (R_PELIGRO - 40);
     const x = Math.cos(a) * d, z = Math.sin(a) * d;
     const escala = 1.0 + Math.random() * 1.2;
     if (sitioLibre(x, z, R_ROCA * escala)) {
